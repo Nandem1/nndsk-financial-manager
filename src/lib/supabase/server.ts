@@ -1,8 +1,30 @@
 // src/lib/supabase/server.ts
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export const createServerClient = async () => {
-  const cookieStore = cookies();
-  return createServerComponentClient({ cookies: () => cookieStore });
+export const createServerSupabaseClient = async () => {
+  const cookieStore = await cookies(); // ← Agregué await aquí
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        // ← Cambié a un objeto con métodos
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Se puede ignorar en Server Components
+            // porque no se pueden modificar cookies después del render
+          }
+        },
+      },
+    }
+  );
 };
