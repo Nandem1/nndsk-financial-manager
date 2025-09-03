@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+supabasedb.sql
+
+supabase/migrations/
+supabase/seed.sql
+
+.cursorrules
+
+gastos_personales.md
+
+ARCHITECTURE.md
