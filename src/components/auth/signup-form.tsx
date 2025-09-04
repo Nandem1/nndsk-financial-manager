@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
 import { Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
 import { VALIDATION_CONFIG, ERROR_MESSAGES } from '@/lib/constants/validation'
-import { STYLES, UTILITY_CLASSES } from '@/lib/constants/styles'
+import { STYLES } from '@/lib/constants/styles'
 
 const signupSchema = z.object({
   name: z.string()
@@ -71,8 +71,9 @@ export function SignupForm() {
       setTimeout(() => {
         router.push('/login')
       }, 2000)
-    } catch (err: any) {
-      setError(err.message || 'Error al crear la cuenta')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al crear la cuenta'
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }

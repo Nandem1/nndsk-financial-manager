@@ -2,13 +2,12 @@
 
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
-import { supabase } from '@/lib/supabase/client'
 import { LogOut, User, Bell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
 import { motion } from 'framer-motion'
 import { STYLES } from '@/lib/constants/styles'
-import { ANIMATIONS, TRANSITIONS } from '@/lib/constants/animations'
+import { TRANSITIONS } from '@/lib/constants/animations'
 
 export function Navbar() {
   const router = useRouter()

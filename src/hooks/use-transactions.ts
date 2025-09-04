@@ -1,9 +1,7 @@
 import { useState, useCallback } from 'react'
-import { CreateTransactionDTO, Transaction } from '@/types'
-import { TransactionService } from '@/lib/services/transaction-service'
+import { CreateTransactionDTO } from '@/types'
 
 export function useTransactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -20,8 +18,8 @@ export function useTransactions() {
       // setTransactions(prev => [newTransaction, ...prev])
       
       return { success: true }
-    } catch (err: any) {
-      const errorMessage = err.message || 'Error al crear la transacción'
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al crear la transacción'
       setError(errorMessage)
       return { success: false, error: errorMessage }
     } finally {
@@ -34,7 +32,6 @@ export function useTransactions() {
   }, [])
 
   return {
-    transactions,
     loading,
     error,
     createTransaction,

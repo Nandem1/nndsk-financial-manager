@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { VALIDATION_CONFIG, ERROR_MESSAGES } from '@/lib/constants/validation'
-import { STYLES, UTILITY_CLASSES } from '@/lib/constants/styles'
+import { STYLES } from '@/lib/constants/styles'
 
 const loginSchema = z.object({
   email: z.string()
@@ -55,8 +55,9 @@ export function LoginForm() {
 
       router.push('/dashboard')
       router.refresh()
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesión'
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }

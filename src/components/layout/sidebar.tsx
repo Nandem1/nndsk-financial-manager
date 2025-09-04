@@ -8,12 +8,10 @@ import {
   Receipt, 
   PieChart, 
   Settings,
-  Plus,
-  TrendingUp,
-  CreditCard
+  Plus
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { NAVIGATION_ITEMS, ROUTES } from '@/lib/constants/app'
+import { NAVIGATION_ITEMS } from '@/lib/constants/app'
 import { STYLES } from '@/lib/constants/styles'
 import { ANIMATIONS, TRANSITIONS } from '@/lib/constants/animations'
 import { motion } from 'framer-motion'

@@ -12,7 +12,7 @@ export function useAuth() {
 
   const checkAuthStatus = async () => {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       setAuthStatus(user ? 'authenticated' : 'unauthenticated')
     } catch (err) {

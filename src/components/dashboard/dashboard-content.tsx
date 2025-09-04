@@ -1,27 +1,43 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, TrendingUp, TrendingDown, CreditCard, Plus } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, CreditCard, Plus, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { STYLES, UTILITY_CLASSES } from '@/lib/constants/styles'
 import { ANIMATIONS, TRANSITIONS } from '@/lib/constants/animations'
 import { motion } from 'framer-motion'
+import { useDashboard } from '@/hooks/use-dashboard'
+import { Loading } from '@/components/ui/loading'
+import { useAuth } from '@/hooks/use-auth'
 
 export function DashboardContent() {
-  // Datos de ejemplo - después se conectarán con Supabase
-  const stats = {
-    balance: 1250.50,
-    expenses: 850.30,
-    income: 2100.80,
-    transactions: 24
+  const { user } = useAuth()
+  const { stats, recentTransactions, loading, error, refreshData } = useDashboard()
+
+  // Mostrar loading mientras se cargan los datos
+  if (loading) {
+    return <Loading message="Cargando datos del dashboard..." />
   }
 
-  const recentTransactions = [
-    { id: 1, description: 'Almuerzo en restaurant', amount: 25.50, type: 'expense', date: '2024-01-15' },
-    { id: 2, description: 'Salario', amount: 2500.00, type: 'income', date: '2024-01-14' },
-    { id: 3, description: 'Gasolina', amount: 45.00, type: 'expense', date: '2024-01-13' },
-    { id: 4, description: 'Supermercado', amount: 120.75, type: 'expense', date: '2024-01-12' },
-  ]
+  // Mostrar error si hay algún problema
+  if (error) {
+    return (
+      <div className={UTILITY_CLASSES.spacing.section}>
+        <div className="text-center">
+          <h2 className={`${UTILITY_CLASSES.text.title} ${STYLES.text.error} mb-4`}>
+            Error al cargar el dashboard
+          </h2>
+          <p className={`${UTILITY_CLASSES.text.body} ${STYLES.text.secondary} mb-6`}>
+            {error}
+          </p>
+          <Button onClick={refreshData} className={STYLES.button.primary}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <motion.div 
@@ -45,7 +61,7 @@ export function DashboardContent() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ ...TRANSITIONS.smooth, delay: 0.2 }}
           >
-            Dashboard
+            ¡Hola, {user?.user_metadata?.name || user?.email?.split('@')[0] || 'Usuario'}!
           </motion.h1>
           <motion.p 
             className={`${UTILITY_CLASSES.text.body} ${STYLES.text.secondary}`}
@@ -56,17 +72,34 @@ export function DashboardContent() {
             Resumen de tus finanzas personales
           </motion.p>
         </div>
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          transition={TRANSITIONS.fast}
-        >
-          <Button className={`${STYLES.button.primary} w-full sm:w-auto`}>
-            <Plus className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Nueva Transacción</span>
-            <span className="sm:hidden">+ Transacción</span>
-          </Button>
-        </motion.div>
+        <div className="flex gap-2">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={TRANSITIONS.fast}
+          >
+            <Button 
+              variant="outline" 
+              onClick={refreshData}
+              className="w-full sm:w-auto"
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Actualizar</span>
+            </Button>
+          </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={TRANSITIONS.fast}
+          >
+            <Button className={`${STYLES.button.primary} w-full sm:w-auto`}>
+              <Plus className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Nueva Transacción</span>
+              <span className="sm:hidden">+ Transacción</span>
+            </Button>
+          </motion.div>
+        </div>
       </motion.div>
 
       {/* Stats Cards */}
@@ -141,32 +174,52 @@ export function DashboardContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-          <div className="space-y-3 sm:space-y-4">
-            {recentTransactions.map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
-                    transaction.type === 'income' ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50'
+          {recentTransactions.length > 0 ? (
+            <div className="space-y-3 sm:space-y-4">
+              {recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
+                      transaction.transaction_type === 'income' ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50'
+                    }`}>
+                      {transaction.transaction_type === 'income' ? (
+                        <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className={`font-medium ${STYLES.text.primary} ${UTILITY_CLASSES.text.body} truncate`}>
+                        {transaction.description}
+                      </p>
+                      <p className={`${UTILITY_CLASSES.text.small} ${STYLES.text.tertiary}`}>
+                        {new Date(transaction.transaction_date).toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`font-semibold ${UTILITY_CLASSES.text.body} ${
+                    transaction.transaction_type === 'income' ? STYLES.text.success : STYLES.text.error
                   }`}>
-                    {transaction.type === 'income' ? (
-                      <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className={`font-medium ${STYLES.text.primary} ${UTILITY_CLASSES.text.body} truncate`}>{transaction.description}</p>
-                    <p className={`${UTILITY_CLASSES.text.small} ${STYLES.text.tertiary}`}>{transaction.date}</p>
+                    {transaction.transaction_type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
                   </div>
                 </div>
-                <div className={`font-semibold ${UTILITY_CLASSES.text.body} ${
-                  transaction.type === 'income' ? STYLES.text.success : STYLES.text.error
-                }`}>
-                  {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <CreditCard className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <p className={`${UTILITY_CLASSES.text.body} ${STYLES.text.secondary} mb-2`}>
+                No hay transacciones recientes
+              </p>
+              <p className={`${UTILITY_CLASSES.text.small} ${STYLES.text.tertiary}`}>
+                Comienza agregando tu primera transacción
+              </p>
+            </div>
+          )}
           
           <div className="mt-4 text-center">
             <Button variant="outline" className="w-full">
