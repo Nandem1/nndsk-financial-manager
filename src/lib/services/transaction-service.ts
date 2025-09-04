@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import { Category, PaymentMethod, TransactionWithRelations, DashboardStats } from '@/types'
+import { Category, PaymentMethod, TransactionWithRelations, DashboardStats, CreateTransactionDTO } from '@/types'
 
 export class TransactionService {
   /**
@@ -144,5 +144,117 @@ export class TransactionService {
    */
   static async getRecentTransactions(limit: number = 5): Promise<TransactionWithRelations[]> {
     return this.getTransactions(limit)
+  }
+
+  /**
+   * Crear una nueva transacción
+   */
+  static async createTransaction(data: CreateTransactionDTO): Promise<TransactionWithRelations> {
+    try {
+      const user = await this.getAuthenticatedUser()
+      
+      const { data: newTransaction, error } = await supabase
+        .from('transactions')
+        .insert({
+          ...data,
+          user_id: user.id
+        })
+        .select(`
+          *,
+          category:categories(name, color, icon),
+          payment_method:payment_methods(name, type)
+        `)
+        .single()
+
+      if (error) {
+        throw new Error(`Error al crear transacción: ${error.message}`)
+      }
+
+      return newTransaction
+    } catch (error) {
+      console.error('Error en createTransaction:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Actualizar una transacción existente
+   */
+  static async updateTransaction(id: string, data: Partial<CreateTransactionDTO>): Promise<TransactionWithRelations> {
+    try {
+      const user = await this.getAuthenticatedUser()
+      
+      const { data: updatedTransaction, error } = await supabase
+        .from('transactions')
+        .update(data)
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select(`
+          *,
+          category:categories(name, color, icon),
+          payment_method:payment_methods(name, type)
+        `)
+        .single()
+
+      if (error) {
+        throw new Error(`Error al actualizar transacción: ${error.message}`)
+      }
+
+      return updatedTransaction
+    } catch (error) {
+      console.error('Error en updateTransaction:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Eliminar una transacción
+   */
+  static async deleteTransaction(id: string): Promise<void> {
+    try {
+      const user = await this.getAuthenticatedUser()
+      
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id)
+
+      if (error) {
+        throw new Error(`Error al eliminar transacción: ${error.message}`)
+      }
+    } catch (error) {
+      console.error('Error en deleteTransaction:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Obtener una transacción por ID
+   */
+  static async getTransactionById(id: string): Promise<TransactionWithRelations> {
+    try {
+      const user = await this.getAuthenticatedUser()
+      
+      const { data, error } = await supabase
+        .from('transactions')
+        .select(`
+          *,
+          category:categories(name, color, icon),
+          payment_method:payment_methods(name, type)
+        `)
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (error) {
+        throw new Error(`Error al obtener transacción: ${error.message}`)
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error en getTransactionById:', error)
+      throw error
+    }
   }
 }

@@ -30,11 +30,11 @@ export interface Transaction {
   id: string
   user_id: string
   transaction_type: TransactionType
-  amount: number
+  amount: number // En la DB es numeric, pero TypeScript lo maneja como number
   description: string
   category_id: string
   payment_method_id: string
-  transaction_date: string
+  transaction_date: string // En la DB es date, pero lo manejamos como string ISO
   notes?: string
   created_at: string
 }

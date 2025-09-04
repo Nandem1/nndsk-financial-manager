@@ -1,9 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,23 +8,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Receipt, DollarSign, Calendar, CreditCard, FileText } from 'lucide-react'
-import { CreateTransactionDTO, Category, PaymentMethod } from '@/types'
-import { TransactionService } from '@/lib/services/transaction-service'
+import { CreateTransactionDTO } from '@/types'
 import { STYLES } from '@/lib/constants/styles'
 import { ANIMATIONS } from '@/lib/constants/animations'
-
-// Schema de validación
-const transactionSchema = z.object({
-  transaction_type: z.enum(['expense', 'income']),
-  amount: z.number().min(0.01, 'El monto debe ser mayor a 0'),
-  description: z.string().min(1, 'La descripción es requerida').max(100, 'Máximo 100 caracteres'),
-  category_id: z.string().min(1, 'Selecciona una categoría'),
-  payment_method_id: z.string().min(1, 'Selecciona un método de pago'),
-  transaction_date: z.string().min(1, 'La fecha es requerida'),
-  notes: z.string().max(500, 'Máximo 500 caracteres').optional(),
-})
-
-type TransactionFormData = z.infer<typeof transactionSchema>
+import { transactionSchema, TransactionFormData } from '@/lib/constants/schemas'
+import { useFormHandler } from '@/hooks/use-form-handler'
+import { useFormData } from '@/hooks/use-form-data'
 
 interface TransactionFormProps {
   onSubmit: (data: CreateTransactionDTO) => Promise<void>
@@ -37,57 +22,23 @@ interface TransactionFormProps {
 }
 
 export function TransactionForm({ onSubmit, onCancel, loading = false }: TransactionFormProps) {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
-  const [categoriesLoading, setCategoriesLoading] = useState(true)
-  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true)
-
+  const { categories, paymentMethods, loading: formDataLoading, error: formDataError } = useFormData()
+  
   const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useForm<TransactionFormData>({
-    resolver: zodResolver(transactionSchema),
-    defaultValues: {
-      transaction_type: 'expense',
-      transaction_date: new Date().toISOString().split('T')[0],
-    },
+    form,
+    loading: formLoading,
+    error: formError,
+    handleSubmit
+  } = useFormHandler<TransactionFormData>(transactionSchema, {
+    transaction_type: 'expense',
+    transaction_date: new Date().toISOString().split('T')[0],
   })
 
-  const watchedType = watch('transaction_type')
+  const watchedType = form.watch('transaction_type')
 
-  // Cargar categorías y métodos de pago
-  useEffect(() => {
-    const loadFormData = async () => {
-      try {
-        const [categoriesData, paymentMethodsData] = await Promise.all([
-          TransactionService.getCategories(),
-          TransactionService.getPaymentMethods()
-        ])
-        
-        setCategories(categoriesData)
-        setPaymentMethods(paymentMethodsData)
-      } catch (error) {
-        console.error('Error loading form data:', error)
-      } finally {
-        setCategoriesLoading(false)
-        setPaymentMethodsLoading(false)
-      }
-    }
-
-    loadFormData()
-  }, [])
-
-  const handleFormSubmit = async (data: TransactionFormData) => {
-    try {
-      await onSubmit(data)
-    } catch (error) {
-      // El error se maneja en el componente padre
-      console.error('Error en formulario:', error)
-    }
-  }
+  const handleFormSubmit = form.handleSubmit((data) => {
+    handleSubmit(() => onSubmit(data))
+  })
 
   return (
     <motion.div
@@ -103,7 +54,7 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+          <form onSubmit={handleFormSubmit} className="space-y-6">
             {/* Tipo de Transacción */}
             <div className="space-y-3">
               <Label className={`text-sm font-medium ${STYLES.text.secondary}`}>
@@ -114,7 +65,7 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                   type="button"
                   variant={watchedType === 'expense' ? 'default' : 'outline'}
                   className={`flex-1 ${watchedType === 'expense' ? STYLES.button.primary : STYLES.button.outline}`}
-                  onClick={() => setValue('transaction_type', 'expense')}
+                  onClick={() => form.setValue('transaction_type', 'expense')}
                 >
                   <Receipt className="h-4 w-4 mr-2" />
                   Gasto
@@ -123,14 +74,14 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                   type="button"
                   variant={watchedType === 'income' ? 'default' : 'outline'}
                   className={`flex-1 ${watchedType === 'income' ? STYLES.button.primary : STYLES.button.outline}`}
-                  onClick={() => setValue('transaction_type', 'income')}
+                  onClick={() => form.setValue('transaction_type', 'income')}
                 >
                   <DollarSign className="h-4 w-4 mr-2" />
                   Ingreso
                 </Button>
               </div>
-              {errors.transaction_type && (
-                <p className={`text-sm ${STYLES.text.error}`}>{errors.transaction_type.message}</p>
+              {form.formState.errors.transaction_type && (
+                <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.transaction_type.message}</p>
               )}
             </div>
 
@@ -148,11 +99,11 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                   min="0"
                   placeholder="0.00"
                   className={`pl-10 h-11 ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500`}
-                  {...register('amount', { valueAsNumber: true })}
+                  {...form.register('amount', { valueAsNumber: true })}
                 />
               </div>
-              {errors.amount && (
-                <p className={`text-sm ${STYLES.text.error}`}>{errors.amount.message}</p>
+              {form.formState.errors.amount && (
+                <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.amount.message}</p>
               )}
             </div>
 
@@ -167,11 +118,11 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                   id="description"
                   placeholder="¿En qué gastaste?"
                   className={`pl-10 h-11 ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500`}
-                  {...register('description')}
+                  {...form.register('description')}
                 />
               </div>
-              {errors.description && (
-                <p className={`text-sm ${STYLES.text.error}`}>{errors.description.message}</p>
+              {form.formState.errors.description && (
+                <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.description.message}</p>
               )}
             </div>
 
@@ -180,7 +131,7 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
               <Label htmlFor="category" className={`text-sm font-medium ${STYLES.text.secondary}`}>
                 Categoría
               </Label>
-              {categoriesLoading ? (
+              {formDataLoading ? (
                 <div className={`h-11 ${STYLES.border.primary} rounded-md flex items-center px-3 ${STYLES.text.tertiary}`}>
                   Cargando categorías...
                 </div>
@@ -189,7 +140,7 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                   No hay categorías disponibles
                 </div>
               ) : (
-                <Select onValueChange={(value) => setValue('category_id', value)}>
+                <Select onValueChange={(value) => form.setValue('category_id', value)}>
                   <SelectTrigger className={`h-11 ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500`}>
                     <SelectValue placeholder="Selecciona una categoría" />
                   </SelectTrigger>
@@ -208,8 +159,8 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                   </SelectContent>
                 </Select>
               )}
-              {errors.category_id && (
-                <p className={`text-sm ${STYLES.text.error}`}>{errors.category_id.message}</p>
+              {form.formState.errors.category_id && (
+                <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.category_id.message}</p>
               )}
             </div>
 
@@ -218,7 +169,7 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
               <Label htmlFor="payment_method" className={`text-sm font-medium ${STYLES.text.secondary}`}>
                 Método de Pago
               </Label>
-              {paymentMethodsLoading ? (
+              {formDataLoading ? (
                 <div className={`h-11 ${STYLES.border.primary} rounded-md flex items-center px-3 ${STYLES.text.tertiary}`}>
                   Cargando métodos de pago...
                 </div>
@@ -227,7 +178,7 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                   No hay métodos de pago disponibles
                 </div>
               ) : (
-                <Select onValueChange={(value) => setValue('payment_method_id', value)}>
+                <Select onValueChange={(value) => form.setValue('payment_method_id', value)}>
                   <SelectTrigger className={`h-11 ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500`}>
                     <SelectValue placeholder="Selecciona un método de pago" />
                   </SelectTrigger>
@@ -243,8 +194,8 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                   </SelectContent>
                 </Select>
               )}
-              {errors.payment_method_id && (
-                <p className={`text-sm ${STYLES.text.error}`}>{errors.payment_method_id.message}</p>
+              {form.formState.errors.payment_method_id && (
+                <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.payment_method_id.message}</p>
               )}
             </div>
 
@@ -259,11 +210,11 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                   id="transaction_date"
                   type="date"
                   className={`pl-10 h-11 ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500`}
-                  {...register('transaction_date')}
+                  {...form.register('transaction_date')}
                 />
               </div>
-              {errors.transaction_date && (
-                <p className={`text-sm ${STYLES.text.error}`}>{errors.transaction_date.message}</p>
+              {form.formState.errors.transaction_date && (
+                <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.transaction_date.message}</p>
               )}
             </div>
 
@@ -276,12 +227,26 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                 id="notes"
                 placeholder="Notas adicionales..."
                 className={`min-h-[80px] ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500`}
-                {...register('notes')}
+                {...form.register('notes')}
               />
-              {errors.notes && (
-                <p className={`text-sm ${STYLES.text.error}`}>{errors.notes.message}</p>
+              {form.formState.errors.notes && (
+                <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.notes.message}</p>
               )}
             </div>
+
+            {/* Error del formulario */}
+            {formError && (
+              <div className={`p-3 ${STYLES.background.secondary} ${STYLES.border.primary} rounded-lg`}>
+                <p className={`text-sm ${STYLES.text.error}`}>{formError}</p>
+              </div>
+            )}
+
+            {/* Error de datos del formulario */}
+            {formDataError && (
+              <div className={`p-3 ${STYLES.background.secondary} ${STYLES.border.primary} rounded-lg`}>
+                <p className={`text-sm ${STYLES.text.error}`}>{formDataError}</p>
+              </div>
+            )}
 
             {/* Botones */}
             <div className="flex gap-3 pt-4">
@@ -290,16 +255,16 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                 variant="outline"
                 onClick={onCancel}
                 className={`flex-1 ${STYLES.button.outline}`}
-                disabled={loading}
+                disabled={loading || formLoading}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 className={`flex-1 ${STYLES.button.primary}`}
-                disabled={loading || categoriesLoading || paymentMethodsLoading || categories.length === 0 || paymentMethods.length === 0}
+                disabled={loading || formLoading || formDataLoading || categories.length === 0 || paymentMethods.length === 0}
               >
-                {loading ? 'Guardando...' : 'Guardar Transacción'}
+                {loading || formLoading ? 'Guardando...' : 'Guardar Transacción'}
               </Button>
             </div>
           </form>
@@ -308,3 +273,4 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
     </motion.div>
   )
 }
+

@@ -2,82 +2,54 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
 import { Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
-import { VALIDATION_CONFIG, ERROR_MESSAGES } from '@/lib/constants/validation'
 import { STYLES } from '@/lib/constants/styles'
-
-const signupSchema = z.object({
-  name: z.string()
-    .min(VALIDATION_CONFIG.name.minLength, ERROR_MESSAGES.nameTooShort)
-    .max(VALIDATION_CONFIG.name.maxLength, ERROR_MESSAGES.nameTooLong),
-  email: z.string()
-    .min(VALIDATION_CONFIG.email.minLength, ERROR_MESSAGES.required)
-    .max(VALIDATION_CONFIG.email.maxLength, ERROR_MESSAGES.required)
-    .email(ERROR_MESSAGES.invalidEmail),
-  password: z.string()
-    .min(VALIDATION_CONFIG.password.minLength, ERROR_MESSAGES.passwordTooShort)
-    .max(VALIDATION_CONFIG.password.maxLength, ERROR_MESSAGES.passwordTooLong),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: ERROR_MESSAGES.passwordsDoNotMatch,
-  path: ["confirmPassword"],
-})
-
-type SignupFormData = z.infer<typeof signupSchema>
+import { signupSchema, SignupFormData } from '@/lib/constants/schemas'
+import { useFormHandler } from '@/hooks/use-form-handler'
 
 export function SignupForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const router = useRouter()
 
   const {
-    register,
+    form,
+    loading,
+    error,
+    showPassword,
+    showConfirmPassword,
     handleSubmit,
-    formState: { errors },
-  } = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
-  })
+    togglePasswordVisibility,
+    toggleConfirmPasswordVisibility
+  } = useFormHandler<SignupFormData>(signupSchema)
 
   const onSubmit = async (data: SignupFormData) => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      const { error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            name: data.name,
-          },
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          name: data.name,
         },
-      })
+      },
+    })
 
-      if (error) {
-        throw error
-      }
-
-      setSuccess(true)
-      setTimeout(() => {
-        router.push('/login')
-      }, 2000)
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al crear la cuenta'
-      setError(errorMessage)
-    } finally {
-      setIsLoading(false)
+    if (error) {
+      throw error
     }
+
+    setSuccess(true)
+    setTimeout(() => {
+      router.push('/login')
+    }, 2000)
   }
+
+  const handleFormSubmit = form.handleSubmit((data) => {
+    handleSubmit(() => onSubmit(data as unknown as SignupFormData))
+  })
 
   if (success) {
     return (
@@ -93,7 +65,7 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleFormSubmit} className="space-y-4">
       {/* Name */}
       <div className="space-y-2">
         <Label htmlFor="name" className={`text-sm font-medium ${STYLES.text.secondary}`}>
@@ -104,10 +76,10 @@ export function SignupForm() {
           type="text"
           placeholder="Tu nombre completo"
           className={`h-10 sm:h-11 ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500`}
-          {...register('name')}
+          {...form.register('name')}
         />
-        {errors.name && (
-          <p className={`text-sm ${STYLES.text.error}`}>{errors.name.message}</p>
+        {form.formState.errors.name && (
+          <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.name.message}</p>
         )}
       </div>
 
@@ -121,10 +93,10 @@ export function SignupForm() {
           type="email"
           placeholder="tu@email.com"
           className={`h-10 sm:h-11 ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500`}
-          {...register('email')}
+          {...form.register('email')}
         />
-        {errors.email && (
-          <p className={`text-sm ${STYLES.text.error}`}>{errors.email.message}</p>
+        {form.formState.errors.email && (
+          <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.email.message}</p>
         )}
       </div>
 
@@ -139,18 +111,18 @@ export function SignupForm() {
             type={showPassword ? 'text' : 'password'}
             placeholder="••••••••"
             className={`h-10 sm:h-11 ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500 pr-10`}
-            {...register('password')}
+            {...form.register('password')}
           />
           <button
             type="button"
-            onClick={() => setShowPassword(!showPassword)}
+            onClick={togglePasswordVisibility}
             className={`absolute right-3 top-1/2 -translate-y-1/2 ${STYLES.text.tertiary} hover:${STYLES.hover.text}`}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-        {errors.password && (
-          <p className={`text-sm ${STYLES.text.error}`}>{errors.password.message}</p>
+        {form.formState.errors.password && (
+          <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.password.message}</p>
         )}
       </div>
 
@@ -165,18 +137,18 @@ export function SignupForm() {
             type={showConfirmPassword ? 'text' : 'password'}
             placeholder="••••••••"
             className={`h-10 sm:h-11 ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500 pr-10`}
-            {...register('confirmPassword')}
+            {...form.register('confirmPassword')}
           />
           <button
             type="button"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            onClick={toggleConfirmPasswordVisibility}
             className={`absolute right-3 top-1/2 -translate-y-1/2 ${STYLES.text.tertiary} hover:${STYLES.hover.text}`}
           >
             {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-        {errors.confirmPassword && (
-          <p className={`text-sm ${STYLES.text.error}`}>{errors.confirmPassword.message}</p>
+        {form.formState.errors.confirmPassword && (
+          <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.confirmPassword.message}</p>
         )}
       </div>
 
@@ -191,9 +163,9 @@ export function SignupForm() {
       <Button
         type="submit"
         className={`w-full h-10 sm:h-11 ${STYLES.button.primary}`}
-        disabled={isLoading}
+        disabled={loading}
       >
-        {isLoading ? (
+        {loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Creando cuenta...

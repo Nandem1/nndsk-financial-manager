@@ -1,70 +1,47 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import { VALIDATION_CONFIG, ERROR_MESSAGES } from '@/lib/constants/validation'
 import { STYLES } from '@/lib/constants/styles'
-
-const loginSchema = z.object({
-  email: z.string()
-    .min(VALIDATION_CONFIG.email.minLength, ERROR_MESSAGES.required)
-    .max(VALIDATION_CONFIG.email.maxLength, ERROR_MESSAGES.required)
-    .email(ERROR_MESSAGES.invalidEmail),
-  password: z.string()
-    .min(VALIDATION_CONFIG.password.minLength, ERROR_MESSAGES.passwordTooShort)
-    .max(VALIDATION_CONFIG.password.maxLength, ERROR_MESSAGES.passwordTooLong),
-})
-
-type LoginFormData = z.infer<typeof loginSchema>
+import { loginSchema, LoginFormData } from '@/lib/constants/schemas'
+import { useFormHandler } from '@/hooks/use-form-handler'
 
 export function LoginForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-
+  
   const {
-    register,
+    form,
+    loading,
+    error,
+    showPassword,
     handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  })
+    togglePasswordVisibility
+  } = useFormHandler<LoginFormData>(loginSchema)
 
   const onSubmit = async (data: LoginFormData) => {
-    try {
-      setIsLoading(true)
-      setError(null)
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    })
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      })
-
-      if (error) {
-        throw error
-      }
-
-      router.push('/dashboard')
-      router.refresh()
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesión'
-      setError(errorMessage)
-    } finally {
-      setIsLoading(false)
+    if (error) {
+      throw error
     }
+
+    router.push('/dashboard')
+    router.refresh()
   }
 
+  const handleFormSubmit = form.handleSubmit((data) => {
+    handleSubmit(() => onSubmit(data as unknown as LoginFormData))
+  })
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleFormSubmit} className="space-y-4">
       {/* Email */}
       <div className="space-y-2">
         <Label htmlFor="email" className={`text-sm font-medium ${STYLES.text.secondary}`}>
@@ -75,10 +52,10 @@ export function LoginForm() {
           type="email"
           placeholder="tu@email.com"
           className={`h-10 sm:h-11 ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500`}
-          {...register('email')}
+          {...form.register('email')}
         />
-        {errors.email && (
-          <p className={`text-sm ${STYLES.text.error}`}>{errors.email.message}</p>
+        {form.formState.errors.email && (
+          <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.email.message}</p>
         )}
       </div>
 
@@ -93,18 +70,18 @@ export function LoginForm() {
             type={showPassword ? 'text' : 'password'}
             placeholder="••••••••"
             className={`h-10 sm:h-11 ${STYLES.border.primary} focus:${STYLES.border.focus} focus:ring-2 focus:ring-blue-500 pr-10`}
-            {...register('password')}
+            {...form.register('password')}
           />
           <button
             type="button"
-            onClick={() => setShowPassword(!showPassword)}
+            onClick={togglePasswordVisibility}
             className={`absolute right-3 top-1/2 -translate-y-1/2 ${STYLES.text.tertiary} hover:${STYLES.hover.text}`}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-        {errors.password && (
-          <p className={`text-sm ${STYLES.text.error}`}>{errors.password.message}</p>
+        {form.formState.errors.password && (
+          <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.password.message}</p>
         )}
       </div>
 
@@ -119,9 +96,9 @@ export function LoginForm() {
       <Button
         type="submit"
         className={`w-full h-10 sm:h-11 ${STYLES.button.primary}`}
-        disabled={isLoading}
+        disabled={loading}
       >
-        {isLoading ? (
+        {loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Iniciando sesión...

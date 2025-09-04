@@ -57,29 +57,36 @@ export function getDefaultErrorMessage(type: ErrorType): string {
   }
 }
 
+// Mapeo de códigos de error de Supabase a tipos de error
+const SUPABASE_ERROR_MAP: Record<string, { type: ErrorType; message: string }> = {
+  'PGRST116': { type: ErrorType.NOT_FOUND, message: 'Recurso no encontrado' },
+  '42501': { type: ErrorType.AUTHORIZATION, message: 'No tienes permisos para esta acción' },
+  '23505': { type: ErrorType.VALIDATION, message: 'El recurso ya existe' },
+  '23503': { type: ErrorType.VALIDATION, message: 'Referencia inválida' },
+  '23514': { type: ErrorType.VALIDATION, message: 'Datos inválidos' },
+  '42P01': { type: ErrorType.SERVER, message: 'Tabla no encontrada' },
+  '42P02': { type: ErrorType.SERVER, message: 'Columna no encontrada' },
+}
+
+// Mapeo de patrones de mensaje a tipos de error
+const MESSAGE_PATTERN_MAP: Array<{ pattern: RegExp; type: ErrorType; message: string }> = [
+  { pattern: /network|fetch/i, type: ErrorType.NETWORK, message: 'Error de conexión' },
+  { pattern: /unauthorized|401/i, type: ErrorType.AUTHENTICATION, message: 'No autorizado' },
+  { pattern: /forbidden|403/i, type: ErrorType.AUTHORIZATION, message: 'Acceso denegado' },
+  { pattern: /not found|404/i, type: ErrorType.NOT_FOUND, message: 'No encontrado' },
+]
+
 // Función para convertir errores de Supabase a errores de la aplicación
 export function handleSupabaseError(error: unknown): AppError {
-  // Verificar si el error tiene la estructura esperada
+  const originalError = error instanceof Error ? error : undefined
+
+  // Verificar si el error tiene código
   if (error && typeof error === 'object' && 'code' in error) {
     const errorWithCode = error as { code: string; message?: string }
+    const errorConfig = SUPABASE_ERROR_MAP[errorWithCode.code]
     
-    switch (errorWithCode.code) {
-      case 'PGRST116':
-        return createAppError(ErrorType.NOT_FOUND, 'Recurso no encontrado', error instanceof Error ? error : undefined)
-      case '42501':
-        return createAppError(ErrorType.AUTHORIZATION, 'No tienes permisos para esta acción', error instanceof Error ? error : undefined)
-      case '23505':
-        return createAppError(ErrorType.VALIDATION, 'El recurso ya existe', error instanceof Error ? error : undefined)
-      case '23503':
-        return createAppError(ErrorType.VALIDATION, 'Referencia inválida', error instanceof Error ? error : undefined)
-      case '23514':
-        return createAppError(ErrorType.VALIDATION, 'Datos inválidos', error instanceof Error ? error : undefined)
-      case '42P01':
-        return createAppError(ErrorType.SERVER, 'Tabla no encontrada', error instanceof Error ? error : undefined)
-      case '42P02':
-        return createAppError(ErrorType.SERVER, 'Columna no encontrada', error instanceof Error ? error : undefined)
-      default:
-        return createAppError(ErrorType.UNKNOWN, errorWithCode.message || 'Error desconocido', error instanceof Error ? error : undefined)
+    if (errorConfig) {
+      return createAppError(errorConfig.type, errorConfig.message, originalError)
     }
   }
 
@@ -87,17 +94,10 @@ export function handleSupabaseError(error: unknown): AppError {
   if (error && typeof error === 'object' && 'message' in error) {
     const errorWithMessage = error as { message: string }
     
-    if (errorWithMessage.message.includes('network') || errorWithMessage.message.includes('fetch')) {
-      return createAppError(ErrorType.NETWORK, 'Error de conexión', error instanceof Error ? error : undefined)
-    }
-    if (errorWithMessage.message.includes('unauthorized') || errorWithMessage.message.includes('401')) {
-      return createAppError(ErrorType.AUTHENTICATION, 'No autorizado', error instanceof Error ? error : undefined)
-    }
-    if (errorWithMessage.message.includes('forbidden') || errorWithMessage.message.includes('403')) {
-      return createAppError(ErrorType.AUTHORIZATION, 'Acceso denegado', error instanceof Error ? error : undefined)
-    }
-    if (errorWithMessage.message.includes('not found') || errorWithMessage.message.includes('404')) {
-      return createAppError(ErrorType.NOT_FOUND, 'No encontrado', error instanceof Error ? error : undefined)
+    for (const { pattern, type, message } of MESSAGE_PATTERN_MAP) {
+      if (pattern.test(errorWithMessage.message)) {
+        return createAppError(type, message, originalError)
+      }
     }
   }
 
@@ -106,7 +106,7 @@ export function handleSupabaseError(error: unknown): AppError {
     return createAppError(ErrorType.UNKNOWN, error.message, error)
   }
 
-  return createAppError(ErrorType.UNKNOWN, 'Error desconocido', error instanceof Error ? error : undefined)
+  return createAppError(ErrorType.UNKNOWN, 'Error desconocido', originalError)
 }
 
 // Función para validar si un error es recuperable
