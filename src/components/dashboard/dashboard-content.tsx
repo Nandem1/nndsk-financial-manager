@@ -13,11 +13,17 @@ import { useAuth } from '@/hooks/use-auth'
 import Link from 'next/link'
 import { ROUTES } from '@/lib/constants/app'
 import { formatCurrency } from '@/utils/format'
+import { CreditCardsSummary } from './credit-cards-summary'
+import { UpcomingPayments } from '@/components/credit-cards/upcoming-payments'
+import { useCreditCards } from '@/hooks/use-credit-cards'
+import { useCreditCardModal } from '@/contexts/credit-card-modal-context'
 
 export function DashboardContent() {
   const { user } = useAuth()
   const { stats, recentTransactions, loading, error, refreshData } = useDashboard()
   const { open } = useTransactionModal()
+  const { creditCards } = useCreditCards()
+  const { open: openCreditCardModal } = useCreditCardModal()
 
   // Mostrar loading mientras se cargan los datos
   if (loading) {
@@ -171,6 +177,38 @@ export function DashboardContent() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Credit Cards Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...TRANSITIONS.smooth, delay: 0.4 }}
+        >
+          <CreditCardsSummary 
+            cards={creditCards.filter(card => card.type === 'credit_card')} 
+            onCardClick={(cardId) => {
+              if (cardId === 'new') {
+                // Navegar a configuración > métodos de pago
+                window.location.href = `${ROUTES.settings}#payment-methods`
+              } else {
+                const card = creditCards.find(c => c.id === cardId)
+                if (card) {
+                  openCreditCardModal(card)
+                }
+              }
+            }}
+          />
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...TRANSITIONS.smooth, delay: 0.5 }}
+        >
+          <UpcomingPayments userId={user?.id || ''} limit={5} />
+        </motion.div>
       </div>
 
       {/* Recent Transactions */}

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +15,7 @@ import { ANIMATIONS } from '@/lib/constants/animations'
 import { transactionSchema, TransactionFormData } from '@/lib/constants/schemas'
 import { useFormHandler } from '@/hooks/use-form-handler'
 import { useFormData } from '@/hooks/use-form-data'
+import { InstallmentSelector } from './installment-selector'
 
 interface TransactionFormProps {
   onSubmit: (data: CreateTransactionDTO) => Promise<void>
@@ -26,6 +28,12 @@ interface TransactionFormProps {
 export function TransactionForm({ onSubmit, onCancel, loading = false, defaultType = 'expense', variant = 'page' }: TransactionFormProps) {
   const { categories, paymentMethods, loading: formDataLoading, error: formDataError } = useFormData()
   
+  // Obtener tarjetas de crédito del usuario
+  // const { creditCards, loading: loadingCreditCards } = useCreditCards();
+  
+  // Estado para controlar si se muestra el selector de cuotas
+  const [showInstallments, setShowInstallments] = useState(false);
+  
   const {
     form,
     loading: formLoading,
@@ -34,9 +42,23 @@ export function TransactionForm({ onSubmit, onCancel, loading = false, defaultTy
   } = useFormHandler<TransactionFormData>(transactionSchema, {
     transaction_type: defaultType,
     transaction_date: new Date().toISOString().split('T')[0],
+    installments: 1, // Nuevo campo por defecto
   })
 
   const watchedType = form.watch('transaction_type')
+  const paymentMethodId = form.watch('payment_method_id');
+  
+  useEffect(() => {
+    // Mostrar selector de cuotas solo si es tarjeta de crédito
+    const selectedMethod = paymentMethods.find(method => method.id === paymentMethodId);
+    const isCreditCard = selectedMethod?.type === 'credit_card';
+    setShowInstallments(isCreditCard);
+    
+    if (!isCreditCard) {
+      // Resetear cuotas si no es tarjeta de crédito
+      form.setValue('installments', 1);
+    }
+  }, [paymentMethodId, paymentMethods, form]);
 
   const handleFormSubmit = form.handleSubmit((data) => {
     handleSubmit(() => onSubmit(data))
@@ -176,7 +198,14 @@ export function TransactionForm({ onSubmit, onCancel, loading = false, defaultTy
                       <SelectItem key={method.id} value={method.id}>
                         <div className="flex items-center gap-2">
                           <CreditCard className="h-4 w-4" />
-                          {method.name}
+                          <span>
+                            {method.name}
+                            {method.type === 'credit_card' && method.last_four_digits && (
+                              <span className="text-xs text-muted-foreground ml-1">
+                                (****{method.last_four_digits})
+                              </span>
+                            )}
+                          </span>
                         </div>
                       </SelectItem>
                     ))}
@@ -187,6 +216,21 @@ export function TransactionForm({ onSubmit, onCancel, loading = false, defaultTy
                 <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.payment_method_id.message}</p>
               )}
             </div>
+
+            {/* Selector de Cuotas (NUEVO - solo para tarjetas de crédito) */}
+            {showInstallments && (
+              <div className="space-y-2">
+                <InstallmentSelector
+                  value={form.watch('installments') || 1}
+                  onChange={(value) => form.setValue('installments', value)}
+                  cardId={paymentMethodId}
+                  disabled={formDataLoading}
+                />
+                {form.formState.errors.installments && (
+                  <p className={`text-sm ${STYLES.text.error}`}>{form.formState.errors.installments.message}</p>
+                )}
+              </div>
+            )}
 
             {/* Fecha */}
             <div className="space-y-2">

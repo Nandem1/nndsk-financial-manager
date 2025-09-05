@@ -77,9 +77,44 @@ export const transactionSchema = yup.object({
     .string()
     .max(VALIDATION_CONFIG.notes.maxLength, ERROR_MESSAGES.notesTooLong)
     .optional(),
+  // Campo opcional para cuotas (solo para tarjetas de crédito)
+  installments: yup
+    .number()
+    .min(1, 'Mínimo 1 cuota')
+    .max(36, 'Máximo 36 cuotas')
+    .optional(),
+})
+
+// Schema para tarjetas de crédito
+export const creditCardSchema = yup.object({
+  name: yup
+    .string()
+    .min(2, 'El nombre debe tener al menos 2 caracteres')
+    .max(50, 'El nombre no puede exceder 50 caracteres')
+    .required(ERROR_MESSAGES.required),
+  last_four_digits: yup
+    .string()
+    .matches(/^\d{4}$/, 'Debe ser exactamente 4 dígitos')
+    .required(ERROR_MESSAGES.required),
+  credit_limit: yup
+    .number()
+    .min(100, 'El límite mínimo es $100')
+    .max(1000000, 'El límite máximo es $1,000,000')
+    .required(ERROR_MESSAGES.required),
+  due_date: yup
+    .number()
+    .min(1, 'El día debe estar entre 1 y 28')
+    .max(28, 'El día debe estar entre 1 y 28')
+    .required(ERROR_MESSAGES.required),
+  closing_date: yup
+    .number()
+    .min(1, 'El día debe estar entre 1 y 28')
+    .max(28, 'El día debe estar entre 1 y 28')
+    .required(ERROR_MESSAGES.required),
 })
 
 // Tipos inferidos de los schemas
 export type LoginFormData = yup.InferType<typeof loginSchema>
 export type SignupFormData = yup.InferType<typeof signupSchema>
 export type TransactionFormData = yup.InferType<typeof transactionSchema>
+export type CreditCardFormData = yup.InferType<typeof creditCardSchema>

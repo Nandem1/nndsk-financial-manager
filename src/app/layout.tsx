@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { APP_CONFIG } from "@/lib/constants";
 import { TransactionModalProvider } from "@/contexts/transaction-modal-context";
 import { TransactionModal } from "@/components/transactions/transaction-modal";
+import { CreditCardModalProvider } from "@/contexts/credit-card-modal-context";
+import { CreditCardModal } from "@/components/credit-cards/credit-card-modal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,12 +37,15 @@ export default function RootLayout({
         <ErrorBoundary>
           <ThemeProvider>
             <TransactionModalProvider>
-              {/* Global scroll container to ensure all routes can scroll on mobile */}
-              <div className="min-h-[100dvh] bg-gray-50 dark:bg-slate-950 transition-colors duration-200 flex flex-col overflow-y-auto">
-                {children}
-              </div>
-              {/* Global transaction modal */}
-              <TransactionModal />
+              <CreditCardModalProvider>
+                {/* Global scroll container to ensure all routes can scroll on mobile */}
+                <div className="min-h-[100dvh] bg-gray-50 dark:bg-slate-950 transition-colors duration-200 flex flex-col overflow-y-auto">
+                  {children}
+                </div>
+                {/* Global modals */}
+                <TransactionModal />
+                <CreditCardModal />
+              </CreditCardModalProvider>
             </TransactionModalProvider>
           </ThemeProvider>
         </ErrorBoundary>

@@ -19,6 +19,12 @@ export interface PaymentMethod {
   user_id: string
   name: string
   type: 'credit_card' | 'debit_card' | 'cash' | 'transfer'
+  // Campos específicos para tarjetas de crédito
+  credit_limit?: number
+  last_four_digits?: string
+  due_date?: number
+  closing_date?: number
+  available_credit?: number
   created_at: string
 }
 
@@ -56,6 +62,8 @@ export interface CreateTransactionDTO {
   payment_method_id: string
   transaction_date: string
   notes?: string
+  // Campo opcional para cuotas (solo para tarjetas de crédito)
+  installments?: number
 }
 
 // DTO para actualizar transacción
@@ -157,4 +165,67 @@ export interface BaseComponentProps {
 export interface LoadingState {
   loading: boolean
   error: string | null
+}
+
+// ===== TIPOS PARA TARJETAS DE CRÉDITO =====
+
+// Transacción de tarjeta de crédito (cuotas)
+export interface CreditCardTransaction {
+  id: string
+  card_id: string
+  transaction_id?: string
+  parent_transaction_id?: string
+  amount: number
+  description: string
+  installments: number
+  current_installment: number
+  is_paid: boolean
+  due_date: string
+  payment_date?: string
+  created_at: string
+  updated_at: string
+}
+
+// DTO para crear tarjeta de crédito
+export interface CreateCreditCardDTO {
+  name: string
+  last_four_digits: string
+  credit_limit: number
+  due_date: number
+  closing_date: number
+}
+
+// DTO para actualizar tarjeta de crédito
+export interface UpdateCreditCardDTO extends Partial<CreateCreditCardDTO> {
+  id: string
+}
+
+// DTO para crear transacción con cuotas
+export interface CreateCreditCardTransactionDTO {
+  card_id: string
+  amount: number
+  description: string
+  category_id: string
+  transaction_date: string
+  installments: number
+  notes?: string
+}
+
+// Pago próximo
+export interface UpcomingPayment {
+  id: string
+  amount: number
+  due_date: string
+  description: string
+  payment_methods: {
+    name: string
+    last_four_digits: string
+  }
+}
+
+// Resumen de gastos por tarjeta
+export interface CreditCardSpending {
+  cardName: string
+  total: number
+  percentage: number
 }
