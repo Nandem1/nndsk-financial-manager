@@ -91,6 +91,67 @@ export class TransactionService {
   }
 
   /**
+   * Obtener transacciones paginadas del usuario autenticado
+   */
+  static async getTransactionsPaginated(
+    page: number,
+    pageSize: number,
+    filters?: { category_id?: string; search?: string }
+  ): Promise<{
+    items: TransactionWithRelations[]
+    total: number
+    page: number
+    pageSize: number
+    totalPages: number
+  }> {
+    try {
+      const user = await this.getAuthenticatedUser()
+
+      const from = (page - 1) * pageSize
+      const to = from + pageSize - 1
+
+      let query = supabase
+        .from('transactions')
+        .select(
+          `
+          *,
+          category:categories(name, color, icon),
+          payment_method:payment_methods(name, type)
+        `,
+          { count: 'exact' }
+        )
+        .eq('user_id', user.id)
+
+      if (filters?.category_id) {
+        query = query.eq('category_id', filters.category_id)
+      }
+      if (filters?.search && filters.search.trim().length > 0) {
+        const term = filters.search.trim()
+        // Buscar por descripción o notas
+        query = query.or(`description.ilike.%${term}%,notes.ilike.%${term}%`)
+      }
+
+      // Ordenar SIEMPRE por fecha descendente para paginación consistente
+      const { data, error, count } = await query
+        .order('transaction_date', { ascending: false })
+        .range(from, to)
+
+      if (error) {
+        throw new Error(`Error al obtener transacciones paginadas: ${error.message}`)
+      }
+
+      const total = count ?? 0
+      const items = (data as TransactionWithRelations[]) || []
+      const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+      return { items, total, page, pageSize, totalPages }
+    } catch (error) {
+      console.error('Error en getTransactionsPaginated:', error)
+      throw error
+    }
+  }
+
+  /**
    * Obtener estadísticas del dashboard para el usuario autenticado
    */
   static async getDashboardStats(): Promise<DashboardStats> {

@@ -45,7 +45,7 @@ export function Navbar() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ ...TRANSITIONS.smooth, delay: 0.1 }}
           >
-            ExpenseTracker
+            nndsk Finance
           </motion.span>
         </motion.div>
         

@@ -1,8 +1,8 @@
 // Configuración de la aplicación
 export const APP_CONFIG = {
-  name: 'ExpenseTracker',
+  name: 'nndsk Finance',
   version: '1.0.0',
-  description: 'Aplicación para gestión de gastos personales',
+  description: 'Gestor de finanzas personales, simple y rápido',
   maxPasswordLength: 128,
   minPasswordLength: 6,
   maxNameLength: 100,

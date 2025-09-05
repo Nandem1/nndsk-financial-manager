@@ -9,7 +9,7 @@ export default function AuthLayout({
 }) {
   return (
     <motion.div 
-      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center justify-center p-4 sm:p-6 transition-colors duration-200"
+      className="min-h-[100dvh] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center justify-center p-4 sm:p-6 transition-colors duration-200 overflow-y-auto"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -43,7 +43,7 @@ export default function AuthLayout({
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          ExpenseTracker
+          nndsk Finance
         </motion.h1>
         <motion.p 
           className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-2"

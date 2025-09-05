@@ -8,11 +8,16 @@ import { ANIMATIONS, TRANSITIONS } from '@/lib/constants/animations'
 import { motion } from 'framer-motion'
 import { useDashboard } from '@/hooks/use-dashboard'
 import { Loading } from '@/components/ui/loading'
+import { useTransactionModal } from '@/contexts/transaction-modal-context'
 import { useAuth } from '@/hooks/use-auth'
+import Link from 'next/link'
+import { ROUTES } from '@/lib/constants/app'
+import { formatCurrency } from '@/utils/format'
 
 export function DashboardContent() {
   const { user } = useAuth()
   const { stats, recentTransactions, loading, error, refreshData } = useDashboard()
+  const { open } = useTransactionModal()
 
   // Mostrar loading mientras se cargan los datos
   if (loading) {
@@ -93,7 +98,10 @@ export function DashboardContent() {
             whileTap={{ scale: 0.95 }}
             transition={TRANSITIONS.fast}
           >
-            <Button className={`${STYLES.button.primary} w-full sm:w-auto`}>
+            <Button
+              className={`${STYLES.button.primary} w-full sm:w-auto`}
+              onClick={() => open({ type: 'expense', onSuccess: refreshData })}
+            >
               <Plus className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Nueva Transacción</span>
               <span className="sm:hidden">+ Transacción</span>
@@ -111,7 +119,7 @@ export function DashboardContent() {
           </CardHeader>
           <CardContent className={UTILITY_CLASSES.spacing.card}>
             <div className={`text-lg sm:text-2xl font-bold ${stats.balance >= 0 ? STYLES.text.success : STYLES.text.error}`}>
-              ${stats.balance.toLocaleString()}
+              {formatCurrency(stats.balance)}
             </div>
             <p className={`text-xs ${STYLES.text.tertiary}`}>
               {stats.balance >= 0 ? '+12.5%' : '-8.2%'} vs mes anterior
@@ -126,7 +134,7 @@ export function DashboardContent() {
           </CardHeader>
           <CardContent className={UTILITY_CLASSES.spacing.card}>
             <div className={`text-lg sm:text-2xl font-bold ${STYLES.text.error}`}>
-              ${stats.expenses.toLocaleString()}
+              {formatCurrency(stats.expenses)}
             </div>
             <p className={`text-xs ${STYLES.text.tertiary}`}>
               +5.2% vs mes anterior
@@ -141,7 +149,7 @@ export function DashboardContent() {
           </CardHeader>
           <CardContent className={UTILITY_CLASSES.spacing.card}>
             <div className={`text-lg sm:text-2xl font-bold ${STYLES.text.success}`}>
-              ${stats.income.toLocaleString()}
+              {formatCurrency(stats.income)}
             </div>
             <p className={`text-xs ${STYLES.text.tertiary}`}>
               +2.1% vs mes anterior
@@ -204,7 +212,7 @@ export function DashboardContent() {
                   <div className={`font-semibold ${UTILITY_CLASSES.text.body} ${
                     transaction.transaction_type === 'income' ? STYLES.text.success : STYLES.text.error
                   }`}>
-                    {transaction.transaction_type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                    {transaction.transaction_type === 'income' ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount))}
                   </div>
                 </div>
               ))}
@@ -222,16 +230,18 @@ export function DashboardContent() {
           )}
           
           <div className="mt-4 text-center">
-            <Button variant="outline" className="w-full">
-              Ver todas las transacciones
-            </Button>
+            <Link href={ROUTES.transactions}>
+              <Button variant="outline" className="w-full">
+                Ver todas las transacciones
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
 
       {/* Quick Actions */}
       <div className={UTILITY_CLASSES.grid.actions}>
-        <Card className={`${STYLES.effects.shadow} ${STYLES.effects.hoverShadow} ${STYLES.transition} cursor-pointer`}>
+        <Card className={`${STYLES.effects.shadow} ${STYLES.effects.hoverShadow} ${STYLES.transition} cursor-pointer`} onClick={() => open({ type: 'expense', onSuccess: refreshData })}>
           <CardContent className={`${UTILITY_CLASSES.spacing.card} text-center`}>
             <div className="w-8 h-8 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4">
               <Plus className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
@@ -241,7 +251,7 @@ export function DashboardContent() {
           </CardContent>
         </Card>
 
-        <Card className={`${STYLES.effects.shadow} ${STYLES.effects.hoverShadow} ${STYLES.transition} cursor-pointer`}>
+        <Card className={`${STYLES.effects.shadow} ${STYLES.effects.hoverShadow} ${STYLES.transition} cursor-pointer`} onClick={() => open({ type: 'income', onSuccess: refreshData })}>
           <CardContent className={`${UTILITY_CLASSES.spacing.card} text-center`}>
             <div className="w-8 h-8 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4">
               <TrendingUp className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />

@@ -19,9 +19,11 @@ interface TransactionFormProps {
   onSubmit: (data: CreateTransactionDTO) => Promise<void>
   onCancel: () => void
   loading?: boolean
+  defaultType?: 'expense' | 'income'
+  variant?: 'page' | 'modal'
 }
 
-export function TransactionForm({ onSubmit, onCancel, loading = false }: TransactionFormProps) {
+export function TransactionForm({ onSubmit, onCancel, loading = false, defaultType = 'expense', variant = 'page' }: TransactionFormProps) {
   const { categories, paymentMethods, loading: formDataLoading, error: formDataError } = useFormData()
   
   const {
@@ -30,7 +32,7 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
     error: formError,
     handleSubmit
   } = useFormHandler<TransactionFormData>(transactionSchema, {
-    transaction_type: 'expense',
+    transaction_type: defaultType,
     transaction_date: new Date().toISOString().split('T')[0],
   })
 
@@ -40,21 +42,8 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
     handleSubmit(() => onSubmit(data))
   })
 
-  return (
-    <motion.div
-      initial={ANIMATIONS.fadeIn.initial}
-      animate={ANIMATIONS.fadeIn.animate}
-      exit={ANIMATIONS.fadeIn.exit}
-    >
-      <Card className={`${STYLES.background.primary} ${STYLES.border.primary}`}>
-        <CardHeader>
-          <CardTitle className={`flex items-center gap-2 ${STYLES.text.primary}`}>
-            <Receipt className="h-5 w-5" />
-            Nueva Transacción
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleFormSubmit} className="space-y-6">
+  const FormInner = (
+    <form onSubmit={handleFormSubmit} className="space-y-6">
             {/* Tipo de Transacción */}
             <div className="space-y-3">
               <Label className={`text-sm font-medium ${STYLES.text.secondary}`}>
@@ -267,9 +256,38 @@ export function TransactionForm({ onSubmit, onCancel, loading = false }: Transac
                 {loading || formLoading ? 'Guardando...' : 'Guardar Transacción'}
               </Button>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+    </form>
+  )
+
+  return (
+    <motion.div
+      initial={ANIMATIONS.fadeIn.initial}
+      animate={ANIMATIONS.fadeIn.animate}
+      exit={ANIMATIONS.fadeIn.exit}
+    >
+      {variant === 'modal' ? (
+        <div>
+          <div className={`mb-4 sm:mb-6`}>
+            <h3 className={`flex items-center gap-2 text-lg font-semibold ${STYLES.text.primary}`}>
+              <Receipt className="h-5 w-5" />
+              Nueva Transacción
+            </h3>
+          </div>
+          {FormInner}
+        </div>
+      ) : (
+        <Card className={`${STYLES.background.primary} ${STYLES.border.primary}`}>
+          <CardHeader>
+            <CardTitle className={`flex items-center gap-2 ${STYLES.text.primary}`}>
+              <Receipt className="h-5 w-5" />
+              Nueva Transacción
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {FormInner}
+          </CardContent>
+        </Card>
+      )}
     </motion.div>
   )
 }

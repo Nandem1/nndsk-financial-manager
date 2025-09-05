@@ -15,6 +15,9 @@ import { NAVIGATION_ITEMS } from '@/lib/constants/app'
 import { STYLES } from '@/lib/constants/styles'
 import { ANIMATIONS, TRANSITIONS } from '@/lib/constants/animations'
 import { motion } from 'framer-motion'
+import { useTransactionModal } from '@/contexts/transaction-modal-context'
+import { useDashboard } from '@/hooks/use-dashboard'
+import { formatCurrency } from '@/utils/format'
 
 // Mapeo de iconos por nombre
 const iconMap = {
@@ -31,6 +34,8 @@ const navigation = NAVIGATION_ITEMS.map(item => ({
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { open } = useTransactionModal()
+  const { stats, loading } = useDashboard()
 
   return (
     <motion.div 
@@ -46,7 +51,7 @@ export function Sidebar() {
         transition={{ ...TRANSITIONS.smooth, delay: 0.2 }}
       >
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button className={`w-full ${STYLES.button.primary}`} size="sm">
+          <Button className={`w-full ${STYLES.button.primary}`} size="sm" onClick={() => open({ type: 'expense' })}>
             <Plus className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Nuevo Gasto</span>
             <span className="sm:hidden">+ Gasto</span>
@@ -117,7 +122,9 @@ export function Sidebar() {
               transition={TRANSITIONS.fast}
             >
               <span className={STYLES.text.secondary}>Gastos del mes</span>
-              <span className={`font-medium ${STYLES.text.error}`}>$0</span>
+              <span className={`font-medium ${STYLES.text.error}`}>
+                {loading ? '—' : formatCurrency(stats.expenses)}
+              </span>
             </motion.div>
             <motion.div 
               className="flex items-center justify-between text-sm"
@@ -125,7 +132,9 @@ export function Sidebar() {
               transition={TRANSITIONS.fast}
             >
               <span className={STYLES.text.secondary}>Ingresos del mes</span>
-              <span className={`font-medium ${STYLES.text.success}`}>$0</span>
+              <span className={`font-medium ${STYLES.text.success}`}>
+                {loading ? '—' : formatCurrency(stats.income)}
+              </span>
             </motion.div>
           </div>
         </motion.div>

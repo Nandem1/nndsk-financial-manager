@@ -12,7 +12,7 @@ export function useDashboard() {
     isDataLoaded
   } = useDataLoader({
     stats: () => TransactionService.getDashboardStats(),
-    recentTransactions: () => TransactionService.getRecentTransactions(4)
+    recentTransactions: () => TransactionService.getRecentTransactions(3)
   })
 
   return {
