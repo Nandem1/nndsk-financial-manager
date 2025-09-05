@@ -288,10 +288,14 @@ function AiInsightsCard({
       return () => clearInterval(id)
     }, [done])
 
-    // Auto-scroll as it types
+    // Auto-scroll as it types with bottom offset so it's not glued to the viewport
     useEffect(() => {
       if (!done && endRef.current) {
         endRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+        // Add a small offset so there's comfortable space below
+        if (typeof window !== 'undefined') {
+          window.scrollBy({ top: 120, left: 0, behavior: 'smooth' })
+        }
       }
     }, [index, done])
 
@@ -433,8 +437,8 @@ function AiInsightsCard({
           </motion.div>
         )}
 
-        {/* Anchor for auto-scroll */}
-        <div ref={endRef} />
+        {/* Anchor for auto-scroll (with scroll margin for consistent spacing) */}
+        <div ref={endRef} style={{ scrollMarginBottom: '120px' }} />
       </div>
     )
   }
