@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title>Coin Icon (Black & White)</title>
+  <desc>Minimal coin icon with currency symbol</desc>
+  <defs>
+    <radialGradient id="g" cx="50%" cy="50%" r="65%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e5e5e5"/>
+    </radialGradient>
+  </defs>
+  <circle cx="64" cy="64" r="56" fill="url(#g)" stroke="#111" stroke-width="4"/>
+  <circle cx="64" cy="64" r="44" fill="#fff" stroke="#111" stroke-width="3"/>
+  <g fill="#111">
+    <rect x="60" y="30" width="8" height="68" rx="4"/>
+    <path d="M44 54c0-9.941 8.059-18 18-18s18 8.059 18 18h-10c0-4.418-3.582-8-8-8s-8 3.582-8 8 3.582 8 8 8h4c9.941 0 18 8.059 18 18s-8.059 18-18 18-18-8.059-18-18h10c0 4.418 3.582 8 8 8s8-3.582 8-8-3.582-8-8-8h-4c-9.941 0-18-8.059-18-18z"/>
+  </g>
+</svg>

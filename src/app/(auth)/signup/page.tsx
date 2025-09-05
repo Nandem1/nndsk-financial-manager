@@ -1,5 +1,6 @@
 import { SignupForm } from '@/components/auth/signup-form'
 import { STYLES, UTILITY_CLASSES } from '@/lib/constants/styles'
+import { Wallet } from 'lucide-react'
 
 export default function SignupPage() {
   return (
@@ -7,9 +8,7 @@ export default function SignupPage() {
       {/* Header */}
       <div className="text-center space-y-2">
         <div className="flex items-center justify-center mb-6">
-          <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
-            <span className="text-white dark:text-black text-lg font-bold">$</span>
-          </div>
+          <Wallet className="w-16 h-16 sm:w-20 sm:h-20 text-gray-900 dark:text-white" strokeWidth={1.8} />
         </div>
         <h1 className={`text-2xl font-semibold ${STYLES.text.primary}`}>
           Crear cuenta

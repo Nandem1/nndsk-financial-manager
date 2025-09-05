@@ -16,6 +16,10 @@ export function TransactionModal() {
     if (result.success) {
       close()
       onSuccess?.()
+      // Notificar globalmente para refrescar dashboards/sidebars
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('dashboard:refresh'))
+      }
     }
     // Errors are handled inside useAsyncOperation/useTransactions
   }, [createTransaction, close, onSuccess])

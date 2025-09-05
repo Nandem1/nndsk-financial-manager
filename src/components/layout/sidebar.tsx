@@ -35,7 +35,7 @@ const navigation = NAVIGATION_ITEMS.map(item => ({
 export function Sidebar() {
   const pathname = usePathname()
   const { open } = useTransactionModal()
-  const { stats, loading } = useDashboard()
+  const { stats, loading, refreshData } = useDashboard()
 
   return (
     <motion.div 
@@ -51,7 +51,11 @@ export function Sidebar() {
         transition={{ ...TRANSITIONS.smooth, delay: 0.2 }}
       >
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button className={`w-full ${STYLES.button.primary}`} size="sm" onClick={() => open({ type: 'expense' })}>
+          <Button
+            className={`w-full ${STYLES.button.primary}`}
+            size="sm"
+            onClick={() => open({ type: 'expense', onSuccess: () => { refreshData() } })}
+          >
             <Plus className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Nuevo Gasto</span>
             <span className="sm:hidden">+ Gasto</span>

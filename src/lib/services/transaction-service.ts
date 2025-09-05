@@ -43,6 +43,67 @@ export class TransactionService {
   }
 
   /**
+   * Tendencia mensual de ingresos y gastos por mes.
+   * Devuelve los últimos `months` meses incluyendo el mes actual.
+   */
+  static async getMonthlyTrend(params?: { months?: number }): Promise<Array<{
+    month: string // YYYY-MM
+    income: number
+    expenses: number
+    balance: number
+  }>> {
+    try {
+      const user = await this.getAuthenticatedUser()
+      const months = Math.max(1, Math.min(params?.months ?? 6, 24))
+
+      const now = new Date()
+      const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+
+      const from = start.toISOString().split('T')[0]
+      const to = end.toISOString().split('T')[0]
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('id, amount, transaction_type, transaction_date')
+        .eq('user_id', user.id)
+        .gte('transaction_date', from)
+        .lte('transaction_date', to)
+
+      if (error) {
+        throw new Error(`Error al obtener tendencia mensual: ${error.message}`)
+      }
+
+      // Inicializar estructura con 0 para todos los meses del rango
+      const points: Record<string, { income: number; expenses: number }> = {}
+      for (let i = 0; i < months; i++) {
+        const d = new Date(start.getFullYear(), start.getMonth() + i, 1)
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        points[key] = { income: 0, expenses: 0 }
+      }
+
+      type Row = { id: string; amount: number; transaction_type: 'income' | 'expense'; transaction_date: string }
+      for (const t of (data ?? []) as Row[]) {
+        const date = new Date(t.transaction_date)
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        if (!points[key]) continue
+        if (t.transaction_type === 'income') points[key].income += t.amount
+        else points[key].expenses += t.amount
+      }
+
+      return Object.entries(points).map(([month, v]) => ({
+        month,
+        income: v.income,
+        expenses: v.expenses,
+        balance: v.income - v.expenses,
+      }))
+    } catch (error) {
+      console.error('Error en getMonthlyTrend:', error)
+      throw error
+    }
+  }
+
+  /**
    * Obtener categorías del usuario autenticado
    */
   static async getCategories(): Promise<Category[]> {
@@ -205,6 +266,74 @@ export class TransactionService {
    */
   static async getRecentTransactions(limit: number = 5): Promise<TransactionWithRelations[]> {
     return this.getTransactions(limit)
+  }
+
+  /**
+   * Obtener gastos agregados por categoría para el usuario autenticado
+   * Por defecto, del mes actual. Se puede pasar un rango de fechas opcional (ISO yyyy-mm-dd)
+   */
+  static async getExpensesByCategory(params?: { from?: string; to?: string }): Promise<Array<{
+    categoryId: string
+    name: string
+    color: string | null
+    total: number
+  }>> {
+    try {
+      const user = await this.getAuthenticatedUser()
+
+      // Rango por defecto: mes actual
+      const now = new Date()
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+
+      const from = params?.from ?? firstDayOfMonth.toISOString().split('T')[0]
+      const to = params?.to ?? lastDayOfMonth.toISOString().split('T')[0]
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .select(`
+          id,
+          amount,
+          transaction_type,
+          category_id,
+          categories(name, color)
+        `)
+        .eq('user_id', user.id)
+        .eq('transaction_type', 'expense')
+        .gte('transaction_date', from)
+        .lte('transaction_date', to)
+
+      if (error) {
+        throw new Error(`Error al obtener gastos por categoría: ${error.message}`)
+      }
+
+      type ExpenseRow = {
+        id: string
+        amount: number
+        transaction_type: 'income' | 'expense'
+        category_id: string
+        categories: { name?: string | null; color?: string | null } | null
+      }
+
+      const map = new Map<string, { categoryId: string; name: string; color: string | null; total: number }>()
+      ;((data ?? []) as ExpenseRow[]).forEach((t) => {
+        // Types: selecting relational columns returns nested objects per supabase-js types
+        const key: string = t.category_id
+        const name: string = (t.categories?.name ?? 'Sin categoría') as string
+        const color: string | null = (t.categories?.color ?? null) as string | null
+        const prev = map.get(key)
+        if (prev) {
+          prev.total += t.amount
+        } else {
+          map.set(key, { categoryId: key, name, color, total: t.amount })
+        }
+      })
+
+      return Array.from(map.values()).sort((a, b) => b.total - a.total)
+    } catch (error) {
+      console.error('Error en getExpensesByCategory:', error)
+      throw error
+    }
   }
 
   /**
